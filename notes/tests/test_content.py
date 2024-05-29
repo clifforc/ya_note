@@ -12,26 +12,29 @@ class TestNoteList(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.author = User.objects.create(username='Test author')
-        user_notes = [
-            Note(
-                title=f'Note {index}',
-                text='Просто текст.',
-                slug=f'Note_{index}',
-                author=cls.author
-            )
-            for index in range(10)
-        ]
-        Note.objects.bulk_create(user_notes)
+        cls.author = User.objects.create_user(username='Test authorr')
+        cls.not_author = User.objects.create_user(username='Not author')
+        cls.note = Note.objects.create(
+            title='Note 1',
+            text='Просто текст.',
+            slug='Note_1',
+            author=cls.author
+        )
+        cls.note_by_not_author = Note.objects.create(
+            title='Note 2',
+            text='Просто текст.',
+            slug='Note_2',
+            author=cls.not_author
+        )
+        cls.url = reverse('notes:list')
 
-    def test_notes_order(self):
+    def test_notes_list_contains_author_note(self):
         self.client.force_login(self.author)
-        url = reverse('notes:list')
-        response = self.client.get(url)
+        response = self.client.get(self.url)
         object_list = response.context['object_list']
-        all_ids = [note.id for note in object_list]
-        sorted_notes = sorted(all_ids)
-        self.assertEqual(all_ids, sorted_notes)
+        self.assertIn(self.note, object_list)
+        self.assertNotIn(self.note_by_not_author, object_list)
+        self.assertEqual(len(object_list), 1)
 
 
 class TestAddPage(TestCase):
